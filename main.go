@@ -396,15 +396,21 @@ func (g *Game) updateGame() {
 			g.bursts = append(g.bursts, burst{x: v.x, y: v.y})
 		}
 		v.team = p.Team
-		if g.frame%2 == 0 {
-			if p.Run {
-				v.trail = append(v.trail, [2]float64{v.x, v.y})
-				if len(v.trail) > 5 {
-					v.trail = v.trail[1:]
-				}
-			} else if len(v.trail) > 0 {
+		// dashes leave a longer, denser trail than running
+		switch {
+		case p.Dash:
+			v.trail = append(v.trail, [2]float64{v.x, v.y})
+			if len(v.trail) > 8 {
 				v.trail = v.trail[1:]
 			}
+		case g.frame%2 != 0:
+		case p.Run:
+			v.trail = append(v.trail, [2]float64{v.x, v.y})
+			if len(v.trail) > 5 {
+				v.trail = v.trail[1:]
+			}
+		case len(v.trail) > 0:
+			v.trail = v.trail[1:]
 		}
 	}
 	for id := range g.view {

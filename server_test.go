@@ -111,3 +111,41 @@ func TestRound(t *testing.T) {
 		t.Fatalf("unexpected result %q", st.Msg)
 	}
 }
+
+func TestDash(t *testing.T) {
+	s := &Server{players: map[int]*sPlayer{}, phase: PhasePlaying, timer: RoundTime}
+	r := &sPlayer{x: 400, y: 400, energy: EnergyMax, goalRight: true}
+	r.Team, r.FX = TeamRunner, 1
+	s.players[1] = r
+	walk := func(sec float64) float64 {
+		x0 := r.x
+		for i := 0; i < int(sec*TickRate); i++ {
+			s.move(r, 1.0/TickRate)
+		}
+		return r.x - x0
+	}
+
+	r.input = InRight
+	walk(1) // reach full walking speed
+	normal := walk(DashTime)
+	r.hitQueued = true
+	dashed := walk(DashTime)
+	if dashed < normal*2.5 {
+		t.Fatalf("dash too weak: %.0fpx vs %.0fpx walking", dashed, normal)
+	}
+	if r.cooldown <= 0 {
+		t.Fatal("dash did not start a cooldown")
+	}
+	// a second dash right away is blocked by the cooldown
+	walk(0.5)
+	r.hitQueued = true
+	if again := walk(DashTime); again > normal*1.2 {
+		t.Fatalf("dashed again during cooldown (%.0fpx)", again)
+	}
+	walk(DashCooldown)
+	r.x = 400 // back away from the wall before measuring
+	r.hitQueued = true
+	if again := walk(DashTime); again < normal*2.5 {
+		t.Fatalf("dash not available after cooldown (%.0fpx)", again)
+	}
+}

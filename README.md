@@ -28,7 +28,7 @@ CeitG is a 2D LAN game inspired by Roblox's *Huss Valley*. One friend hosts and 
 
 | | Team | Goal |
 |---|---|---|
-| 🔵 | **Runners** | Start in the left safe zone and reach the other side **3 times** (→ ← →). |
+| 🔵 | **Runners** | Start in the left safe zone and reach the other side **3 times** (→ ← →). **Dash** past catchers! |
 | 🔴 | **Catchers** | Swing the stick to tag runners. Tagged runners **become catchers**. |
 
 - Players split into two teams automatically. If the count is odd, **catchers get the extra player**.
@@ -42,7 +42,7 @@ CeitG is a 2D LAN game inspired by Roblox's *Huss Valley*. One friend hosts and 
 |---|---|
 | `W` `A` `S` `D` / Arrows | Move |
 | `Shift` | **Run** (drains the energy bar, refills when you stop) |
-| `Space` / `J` / Left click | **Hit** with the stick (catchers) |
+| `Space` / `J` / Left click | **Catchers:** hit with the stick · **Runners:** dash (a quick burst of speed, 2 s cooldown) |
 | `F11` | Fullscreen |
 | `Esc` ×2 | Leave the game |
 

@@ -18,6 +18,7 @@ type sPlayer struct {
 	x, y      float64
 	energy    float64
 	swingT    float64
+	dashT     float64
 	cooldown  float64
 	input     uint8
 	hitQueued bool
@@ -210,7 +211,8 @@ func (s *Server) StartRound() bool {
 			p.vx, p.vy = 0, 0
 			p.energy = EnergyMax
 			p.C, p.Esc, p.goalRight = 0, false, true
-			p.swingT, p.cooldown, p.hitQueued = 0, 0, false
+			p.swingT, p.dashT, p.cooldown, p.hitQueued = 0, 0, 0, false
+			p.Dash = false
 			if team == TeamCatcher {
 				p.FX, p.FY = -1, 0
 			} else {
@@ -334,18 +336,41 @@ func (s *Server) move(p *sPlayer, dt float64) {
 		p.energy = math.Min(EnergyMax, p.energy+EnergyRegen*dt)
 	}
 
-	speed := BaseSpeed
-	if p.Run {
-		speed *= RunMult
+	if p.Team == TeamRunner {
+		if p.cooldown > 0 {
+			p.cooldown -= dt
+		}
+		if p.hitQueued {
+			p.hitQueued = false
+			if p.cooldown <= 0 && !p.Esc {
+				ddx, ddy := float64(p.FX), float64(p.FY)
+				if moving {
+					ddx, ddy = dx, dy
+				}
+				p.dashT, p.cooldown = DashTime, DashCooldown
+				p.vx, p.vy = ddx*DashSpeed, ddy*DashSpeed
+			}
+		}
 	}
-	// Smooth acceleration with a little slide when keys are released.
-	k := 9.0
-	if !moving {
-		k = 5.0
+
+	if p.dashT > 0 { // dashing: keep the burst velocity, no steering
+		p.dashT -= dt
+		p.Dash = true
+	} else {
+		p.Dash = false
+		speed := BaseSpeed
+		if p.Run {
+			speed *= RunMult
+		}
+		// Smooth acceleration with a little slide when keys are released.
+		k := 9.0
+		if !moving {
+			k = 5.0
+		}
+		a := math.Min(1, k*dt)
+		p.vx += (dx*speed - p.vx) * a
+		p.vy += (dy*speed - p.vy) * a
 	}
-	a := math.Min(1, k*dt)
-	p.vx += (dx*speed - p.vx) * a
-	p.vy += (dy*speed - p.vy) * a
 	p.x += p.vx * dt
 	p.y += p.vy * dt
 
@@ -403,6 +428,7 @@ func (s *Server) swing(c *sPlayer, dt float64) {
 			r.Team, r.Run = TeamCatcher, false
 			r.vx, r.vy = 0, 0
 			r.hitQueued, r.cooldown = false, HitCooldown
+			r.dashT, r.Dash = 0, false
 			r.x = clamp(r.x, ZoneW+Radius, W-ZoneW-Radius)
 			s.msg = c.Name + " caught " + r.Name + "!"
 		}
@@ -422,7 +448,11 @@ func (s *Server) broadcast() {
 	for _, p := range s.players {
 		ps := p.PlayerState
 		ps.X, ps.Y, ps.E = float32(p.x), float32(p.y), uint8(p.energy)
-		ps.CD = float32(math.Max(0, p.cooldown) / HitCooldown)
+		full := HitCooldown
+		if p.Team == TeamRunner {
+			full = DashCooldown
+		}
+		ps.CD = float32(math.Max(0, p.cooldown) / full)
 		m.Players = append(m.Players, ps)
 	}
 	b, _ := json.Marshal(m)

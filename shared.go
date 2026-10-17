@@ -22,7 +22,11 @@ const (
 
 	SwingTime   = 0.22
 	HitCooldown = 0.9
-	HitReach    = Radius + StickLen + Radius*0.7
+
+	DashTime     = 0.3 // runner dash: short burst, then momentum slides out
+	DashSpeed    = BaseSpeed * 3.4
+	DashCooldown = 2.0
+	HitReach     = Radius + StickLen + Radius*0.7
 
 	CountdownTime = 3.0
 	RoundTime     = 150.0
@@ -38,7 +42,7 @@ const (
 	InLeft
 	InRight
 	InRun
-	InHit
+	InHit // hit for catchers, dash for runners
 )
 
 // Teams.
@@ -72,9 +76,10 @@ type PlayerState struct {
 	Team  uint8   `json:"t"`
 	Run   bool    `json:"r,omitempty"`
 	Swing float32 `json:"s,omitempty"` // 0 = idle, (0..1] swing progress
-	CD    float32 `json:"cd,omitempty"`
-	E     uint8   `json:"e"` // energy 0..100
-	C     uint8   `json:"c"` // crossings done
+	Dash  bool    `json:"d,omitempty"`
+	CD    float32 `json:"cd,omitempty"` // hit/dash cooldown left, 0..1
+	E     uint8   `json:"e"`            // energy 0..100
+	C     uint8   `json:"c"`            // crossings done
 	Esc   bool    `json:"es,omitempty"`
 	Host  bool    `json:"h,omitempty"`
 }

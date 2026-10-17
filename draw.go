@@ -49,6 +49,13 @@ func teamColor(t uint8) color.RGBA {
 	return colNeutral
 }
 
+func absf(v float32) float32 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
 func box(dst *ebiten.Image, r rect, c color.Color) {
 	vector.FillRect(dst, r.x, r.y, r.w, r.h, c, false)
 }
@@ -146,7 +153,7 @@ func (g *Game) drawMenu(dst *ebiten.Image) {
 	// controls card
 	x := 905.0
 	drawText(dst, "CONTROLS", x, 244, 13, true, colDim, text.AlignStart)
-	lines := [][2]string{{"WASD / Arrows", "move"}, {"Shift", "run (uses energy)"}, {"Space / J / Click", "hit (catchers)"}, {"F11", "fullscreen"}, {"Esc ×2", "leave game"}}
+	lines := [][2]string{{"WASD / Arrows", "move"}, {"Shift", "run (uses energy)"}, {"Space / J / Click", "hit · dash (runner)"}, {"F11", "fullscreen"}, {"Esc ×2", "leave game"}}
 	for i, l := range lines {
 		y := 274 + float64(i)*30
 		drawText(dst, l[0], x, y, 15, true, colText, text.AlignStart)
@@ -252,6 +259,16 @@ func (g *Game) drawMatch(dst *ebiten.Image) {
 		for i, t := range v.trail {
 			f := float64(i+1) / float64(len(v.trail)+1)
 			vector.FillCircle(dst, float32(t[0]), float32(t[1]), float32(Radius*(0.45+0.4*f)), alpha(teamColor(p.Team), 0.22*f), true)
+		}
+		if p.Dash { // speed lines behind a dashing runner
+			fx, fy := float32(p.FX), float32(p.FY)
+			x, y := float32(v.x), float32(v.y)
+			for _, o := range []float32{-0.6, 0, 0.6} {
+				ox, oy := -fy*o*Radius, fx*o*Radius
+				l := float32(Radius) * (1.6 - absf(o))
+				sx, sy := x-fx*(Radius+6)+ox, y-fy*(Radius+6)+oy
+				vector.StrokeLine(dst, sx, sy, sx-fx*l, sy-fy*l, 2, alpha(colText, 0.55), true)
+			}
 		}
 	}
 
@@ -393,13 +410,13 @@ func (g *Game) drawHUD(dst *ebiten.Image, me *PlayerState) {
 		if me.C%2 == 1 {
 			dir = "← go LEFT"
 		}
-		drawText(dst, fmt.Sprintf("RUNNER  %d/%d  %s", me.C, CrossToWin, dir), 20, cy, 18, true, colRunner, text.AlignStart)
+		drawText(dst, fmt.Sprintf("RUNNER  %d/%d  %s   · Space to dash", me.C, CrossToWin, dir), 20, cy, 18, true, colRunner, text.AlignStart)
 	default:
 		drawText(dst, "CATCHER  — tag runners with Space", 20, cy, 18, true, colCatcher, text.AlignStart)
 	}
 
 	// energy bar
-	bx, bw := float32(W-300), float32(180)
+	bx, bw := float32(W-330), float32(180)
 	drawText(dst, "RUN", float64(bx-10), cy, 13, true, colDim, text.AlignEnd)
 	box(dst, rect{bx, float32(cy) - 6, bw, 12}, colPanel)
 	ec := colEnergy
@@ -408,11 +425,18 @@ func (g *Game) drawHUD(dst *ebiten.Image, me *PlayerState) {
 	}
 	box(dst, rect{bx, float32(cy) - 6, bw * float32(me.E) / EnergyMax, 12}, ec)
 
-	if me.Team == TeamCatcher {
+	if !me.Esc {
+		label, c := "HIT", colStick
+		if me.Team == TeamRunner {
+			label, c = "DASH", colRunner
+		}
+		if me.CD > 0 {
+			c = alpha(c, 0.45)
+		}
 		hx, hw := float32(W-70), float32(50)
-		drawText(dst, "HIT", float64(hx-10), cy, 13, true, colDim, text.AlignEnd)
+		drawText(dst, label, float64(hx-10), cy, 13, true, colDim, text.AlignEnd)
 		box(dst, rect{hx, float32(cy) - 6, hw, 12}, colPanel)
-		box(dst, rect{hx, float32(cy) - 6, hw * (1 - me.CD), 12}, colStick)
+		box(dst, rect{hx, float32(cy) - 6, hw * (1 - me.CD), 12}, c)
 	}
 }
 
