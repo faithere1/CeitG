@@ -34,6 +34,7 @@ cat > "$APP/Info.plist" <<PLIST
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
-codesign --force --deep -s - dist/CeitG.app 2>/dev/null || true
+xattr -cr dist/CeitG.app   # stray attributes make codesign fail
+codesign --force --deep -s - dist/CeitG.app
 (cd dist && zip -qry CeitG-macOS.zip CeitG.app && zip -q CeitG-Windows.zip CeitG.exe)
 ls -lh dist
